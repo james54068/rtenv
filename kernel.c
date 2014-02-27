@@ -4,6 +4,7 @@
 #include "syscall.h"
 
 #include <stddef.h>
+#include <time.h>
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -78,6 +79,9 @@ void show_cmd_info(int argc, char *argv[]);
 void show_task_info(int argc, char *argv[]);
 void show_man_page(int argc, char *argv[]);
 void show_history(int argc, char *argv[]);
+void show_time (int argc, char *argv[]);
+
+
 
 /* Enumeration for command types. */
 enum {
@@ -87,6 +91,7 @@ enum {
 	CMD_HISTORY,
 	CMD_MAN,
 	CMD_PS,
+	CMD_TIME,
 	CMD_COUNT
 } CMD_TYPE;
 /* Structure for command handler. */
@@ -101,7 +106,8 @@ const hcmd_entry cmd_data[CMD_COUNT] = {
 	[CMD_HELP] = {.cmd = "help", .func = show_cmd_info, .description = "List all commands you can use."},
 	[CMD_HISTORY] = {.cmd = "history", .func = show_history, .description = "Show latest commands entered."}, 
 	[CMD_MAN] = {.cmd = "man", .func = show_man_page, .description = "Manual pager."},
-	[CMD_PS] = {.cmd = "ps", .func = show_task_info, .description = "List all the processes."}
+	[CMD_PS] = {.cmd = "ps", .func = show_task_info, .description = "List all the processes."},
+	[CMD_TIME] = {.cmd = "time", .func = show_time, .description = "Show system time."}
 };
 
 /* Structure for environment variables. */
@@ -147,7 +153,6 @@ struct task_control_block {
 struct task_control_block tasks[TASK_LIMIT];
 
 #define PATH_SERVER_NAME "/sys/pathserver"
-
 
 
 void *memcpy(void *dest, const void *src, size_t n);
@@ -674,6 +679,28 @@ void export_envvar(int argc, char *argv[])
 		}
 	}
 }
+// swap function for sorting
+void swap(int* a, int* b)
+{
+	int temp = *a;
+	*a = *b;
+	*b = temp;
+}
+//time 
+void show_time(int argc, char* argv[])
+{
+	/*
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	printf("%d/%d/%d, %d:%d:%d\n",
+            tm.tm_year + 1900,
+            tm.tm_mon + 1,
+            tm.tm_mday,
+            tm.tm_hour,
+            tm.tm_min,
+            tm.tm_sec);
+            */
+}
 
 //ps
 void show_task_info(int argc, char* argv[])
@@ -886,8 +913,6 @@ task_pop (struct task_control_block **list)
 	return NULL;
 }
 
-void _read(struct task_control_block *task, struct task_control_block *tasks, size_t task_count, struct pipe_ringbuffer *pipes);
-void _write(struct task_control_block *task, struct task_control_block *tasks, size_t task_count, struct pipe_ringbuffer *pipes);
 
 void _read(struct task_control_block *task, struct task_control_block *tasks, size_t task_count, struct pipe_ringbuffer *pipes)
 {
@@ -1111,6 +1136,8 @@ int main()
 
 	init_rs232();
 	__enable_irq();
+
+    // why not put there ? while (1) {
 
 	tasks[task_count].stack = (void*)init_task(stacks[task_count], &first);
 	tasks[task_count].pid = 0;
