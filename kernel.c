@@ -24,16 +24,13 @@
 
 #define PRIORITY_DEFAULT 20
 #define PRIORITY_LIMIT (PRIORITY_DEFAULT * 2 - 1)
-
 #define TASK_READY      0
 #define TASK_WAIT_READ  1
 #define TASK_WAIT_WRITE 2
 #define TASK_WAIT_INTR  3
 #define TASK_WAIT_TIME  4
-
 #define S_IFIFO 1
 #define S_IMSGQ 2
-
 #define O_CREAT 4
 
 #define RB_PUSH(rb, size, v) do { \
