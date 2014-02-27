@@ -5,61 +5,6 @@
 
 #include <stddef.h>
 
-void *memcpy(void *dest, const void *src, size_t n);
-
-int strcmp(const char *a, const char *b) __attribute__ ((naked));
-int strcmp(const char *a, const char *b)
-{
-	asm(
-        "strcmp_lop:                \n"
-        "   ldrb    r2, [r0],#1     \n"
-        "   ldrb    r3, [r1],#1     \n"
-        "   cmp     r2, #1          \n"
-        "   it      hi              \n"
-        "   cmphi   r2, r3          \n"
-        "   beq     strcmp_lop      \n"
-		"	sub     r0, r2, r3  	\n"
-        "   bx      lr              \n"
-		:::
-	);
-}
-
-int strncmp(const char *a, const char *b, size_t n)
-{
-	size_t i;
-
-	for (i = 0; i < n; i++)
-		if (a[i] != b[i])
-			return a[i] - b[i];
-
-	return 0;
-}
-
-size_t strlen(const char *s) __attribute__ ((naked));
-size_t strlen(const char *s)
-{
-	asm(
-		"	sub  r3, r0, #1			\n"
-        "strlen_loop:               \n"
-		"	ldrb r2, [r3, #1]!		\n"
-		"	cmp  r2, #0				\n"
-        "   bne  strlen_loop        \n"
-		"	sub  r0, r3, r0			\n"
-		"	bx   lr					\n"
-		:::
-	);
-}
-
-void puts(char *s)
-{
-	while (*s) {
-		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
-			/* wait */ ;
-		USART_SendData(USART2, *s);
-		s++;
-	}
-}
-
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
 #define MAX_CMDHELP 1023
@@ -90,6 +35,36 @@ void puts(char *s)
 #define S_IMSGQ 2
 
 #define O_CREAT 4
+
+#define RB_PUSH(rb, size, v) do { \
+		(rb).data[(rb).end] = (v); \
+		(rb).end++; \
+		if ((rb).end >= size) (rb).end = 0; \
+	} while (0)
+
+#define RB_POP(rb, size, v) do { \
+		(v) = (rb).data[(rb).start]; \
+		(rb).start++; \
+		if ((rb).start >= size) (rb).start = 0; \
+	} while (0)
+
+#define RB_PEEK(rb, size, v, i) do { \
+		int _counter = (i); \
+		int _src_index = (rb).start; \
+		int _dst_index = 0; \
+		while (_counter--) { \
+			((char*)&(v))[_dst_index++] = (rb).data[_src_index++]; \
+			if (_src_index >= size) _src_index = 0; \
+		} \
+	} while (0)
+
+#define RB_LEN(rb, size) (((rb).end - (rb).start) + \
+	(((rb).end < (rb).start) ? size : 0))
+
+#define PIPE_PUSH(pipe, v) RB_PUSH((pipe), PIPE_BUF, (v))
+#define PIPE_POP(pipe, v)  RB_POP((pipe), PIPE_BUF, (v))
+#define PIPE_PEEK(pipe, v, i)  RB_PEEK((pipe), PIPE_BUF, (v), (i))
+#define PIPE_LEN(pipe)     (RB_LEN((pipe), PIPE_BUF))
 
 /*Global Variables*/
 char next_line[3] = {'\n','\r','\0'};
@@ -174,6 +149,65 @@ struct task_control_block {
 };
 struct task_control_block tasks[TASK_LIMIT];
 
+#define PATH_SERVER_NAME "/sys/pathserver"
+
+
+
+void *memcpy(void *dest, const void *src, size_t n);
+
+int strcmp(const char *a, const char *b) __attribute__ ((naked));
+int strcmp(const char *a, const char *b)
+{
+	asm(
+        "strcmp_lop:                \n"
+        "   ldrb    r2, [r0],#1     \n"
+        "   ldrb    r3, [r1],#1     \n"
+        "   cmp     r2, #1          \n"
+        "   it      hi              \n"
+        "   cmphi   r2, r3          \n"
+        "   beq     strcmp_lop      \n"
+		"	sub     r0, r2, r3  	\n"
+        "   bx      lr              \n"
+		:::
+	);
+}
+
+int strncmp(const char *a, const char *b, size_t n)
+{
+	size_t i;
+
+	for (i = 0; i < n; i++)
+		if (a[i] != b[i])
+			return a[i] - b[i];
+
+	return 0;
+}
+
+size_t strlen(const char *s) __attribute__ ((naked));
+size_t strlen(const char *s)
+{
+	asm(
+		"	sub  r3, r0, #1			\n"
+        "strlen_loop:               \n"
+		"	ldrb r2, [r3, #1]!		\n"
+		"	cmp  r2, #0				\n"
+        "   bne  strlen_loop        \n"
+		"	sub  r0, r3, r0			\n"
+		"	bx   lr					\n"
+		:::
+	);
+}
+
+void puts(char *s)
+{
+	while (*s) {
+		while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET)
+			/* wait */ ;
+		USART_SendData(USART2, *s);
+		s++;
+	}
+}
+
 /* 
  * pathserver assumes that all files are FIFOs that were registered
  * with mkfifo.  It also assumes a global tables of FDs shared by all
@@ -183,7 +217,6 @@ struct task_control_block tasks[TASK_LIMIT];
  * 0-2 are reserved FDs and are skipped.
  * The server registers itself at /sys/pathserver
 */
-#define PATH_SERVER_NAME "/sys/pathserver"
 void pathserver()
 {
 	char paths[PIPE_LIMIT - TASK_LIMIT - 3][PATH_MAX];
@@ -811,35 +844,7 @@ struct pipe_ringbuffer {
 	int (*write) (struct pipe_ringbuffer*, struct task_control_block*);
 };
 
-#define RB_PUSH(rb, size, v) do { \
-		(rb).data[(rb).end] = (v); \
-		(rb).end++; \
-		if ((rb).end >= size) (rb).end = 0; \
-	} while (0)
 
-#define RB_POP(rb, size, v) do { \
-		(v) = (rb).data[(rb).start]; \
-		(rb).start++; \
-		if ((rb).start >= size) (rb).start = 0; \
-	} while (0)
-
-#define RB_PEEK(rb, size, v, i) do { \
-		int _counter = (i); \
-		int _src_index = (rb).start; \
-		int _dst_index = 0; \
-		while (_counter--) { \
-			((char*)&(v))[_dst_index++] = (rb).data[_src_index++]; \
-			if (_src_index >= size) _src_index = 0; \
-		} \
-	} while (0)
-
-#define RB_LEN(rb, size) (((rb).end - (rb).start) + \
-	(((rb).end < (rb).start) ? size : 0))
-
-#define PIPE_PUSH(pipe, v) RB_PUSH((pipe), PIPE_BUF, (v))
-#define PIPE_POP(pipe, v)  RB_POP((pipe), PIPE_BUF, (v))
-#define PIPE_PEEK(pipe, v, i)  RB_PEEK((pipe), PIPE_BUF, (v), (i))
-#define PIPE_LEN(pipe)     (RB_LEN((pipe), PIPE_BUF))
 
 unsigned int *init_task(unsigned int *stack, void (*start)())
 {
