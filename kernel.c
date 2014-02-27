@@ -80,6 +80,7 @@ void show_task_info(int argc, char *argv[]);
 void show_man_page(int argc, char *argv[]);
 void show_history(int argc, char *argv[]);
 void show_time (int argc, char *argv[]);
+void sort_num(int argc, char* argv[]);
 
 
 
@@ -91,7 +92,8 @@ enum {
 	CMD_HISTORY,
 	CMD_MAN,
 	CMD_PS,
-	CMD_TIME,
+	CMD_TIME,//for show the system time
+	CMD_SORT,//implement sorting on rtenv
 	CMD_COUNT
 } CMD_TYPE;
 /* Structure for command handler. */
@@ -107,7 +109,10 @@ const hcmd_entry cmd_data[CMD_COUNT] = {
 	[CMD_HISTORY] = {.cmd = "history", .func = show_history, .description = "Show latest commands entered."}, 
 	[CMD_MAN] = {.cmd = "man", .func = show_man_page, .description = "Manual pager."},
 	[CMD_PS] = {.cmd = "ps", .func = show_task_info, .description = "List all the processes."},
-	[CMD_TIME] = {.cmd = "time", .func = show_time, .description = "Show system time."}
+	// show system time
+	[CMD_TIME]    = {.cmd = "time", .func = show_time, .description = "Show system time."},
+	// sort numbers
+	[CMD_SORT]    = {.cmd = "sort",  .func = sort_num, .description = "Sort the input numbers."}
 };
 
 /* Structure for environment variables. */
@@ -686,6 +691,24 @@ void swap(int* a, int* b)
 	*a = *b;
 	*b = temp;
 }
+//sort
+void sort_num(int argc, char* argv[])
+{
+	int i,j;
+	int min_index;
+	for(i=0;i<argc;i++)
+	{
+		min_index = i;
+		for(j=i+1;j<argc;j++)
+		{
+			if(argv[j] < argv[min_index])
+				min_index = j;
+		}
+		swap(argv[i], argv[min_index]);
+		write(fdout, argv[i], 2);
+		write_blank(2);
+	}
+}
 //time 
 void show_time(int argc, char* argv[])
 {
@@ -701,6 +724,8 @@ void show_time(int argc, char* argv[])
             tm.tm_sec);
             */
 }
+
+
 
 //ps
 void show_task_info(int argc, char* argv[])
