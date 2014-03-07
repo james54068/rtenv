@@ -510,6 +510,7 @@ void serial_test_task()
 }
 
 /* Split command into tokens. */
+//what means?
 char *cmdtok(char *cmd)
 {
 	static char *cur = NULL;
@@ -898,7 +899,7 @@ struct pipe_ringbuffer {
 unsigned int *init_task(unsigned int *stack, void (*start)())
 {
 	stack += STACK_SIZE - 9; /* End of stack, minus what we're about to push */
-	stack[8] = (unsigned int)start;
+	stack[8] = (unsigned int)start;//STACK_SIZE=512
 	return stack;
 }
 
@@ -1162,7 +1163,6 @@ int main()
 	init_rs232();
 	__enable_irq();
 
-    // why not put there ? while (1) {
 
 	tasks[task_count].stack = (void*)init_task(stacks[task_count], &first);
 	tasks[task_count].pid = 0;
@@ -1186,7 +1186,7 @@ int main()
 		tasks[current_task].status = TASK_READY;
 		timeup = 0;
 
-		switch (tasks[current_task].stack->r7) {
+		switch (tasks[current_task].stack->r8) {
 		case 0x1: /* fork */
 			if (task_count == TASK_LIMIT) {
 				/* Cannot create a new task, return error */
@@ -1270,8 +1270,8 @@ int main()
 			}
 			break;
 		default: /* Catch all interrupts */
-			if ((int)tasks[current_task].stack->r7 < 0) {
-				unsigned int intr = -tasks[current_task].stack->r7 - 16;
+			if ((int)tasks[current_task].stack->r8 < 0) {
+				unsigned int intr = -tasks[current_task].stack->r8 - 16;
 
 				if (intr == SysTick_IRQn) {
 					/* Never disable timer. We need it for pre-emption */
