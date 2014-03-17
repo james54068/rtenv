@@ -2,10 +2,12 @@
 #include "RTOSConfig.h"
 
 #include "syscall.h"
-
+#include "kernel.h"
+#include "unit_test.h"
 #include <stddef.h>
-#include <time.h>
 
+//#include <time.h>
+/*
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
 #define MAX_CMDHELP 1023
@@ -14,6 +16,8 @@
 #define MAX_ENVCOUNT 30
 #define MAX_ENVNAME 15
 #define MAX_ENVVALUE 127
+*/
+
 #define STACK_SIZE 512 /* Size of task stacks in words */
 #define TASK_LIMIT 8  /* Max number of tasks we can handle */
 #define PIPE_BUF   64 /* Size of largest atomic pipe message */
@@ -64,6 +68,13 @@
 #define PIPE_PEEK(pipe, v, i)  RB_PEEK((pipe), PIPE_BUF, (v), (i))
 #define PIPE_LEN(pipe)     (RB_LEN((pipe), PIPE_BUF))
 
+void *malloc(size_t size)
+{
+	static char m[1024] = {0};
+	return m;
+}
+
+
 /*Global Variables*/
 char next_line[3] = {'\n','\r','\0'};
 size_t task_count = 0;
@@ -79,12 +90,13 @@ void show_cmd_info(int argc, char *argv[]);
 void show_task_info(int argc, char *argv[]);
 void show_man_page(int argc, char *argv[]);
 void show_history(int argc, char *argv[]);
-void show_time (int argc, char *argv[]);
-void sort_num(int argc, char* argv[]);
+//void show_time (int argc, char *argv[]);
+//void sort_num(int argc, char* argv[]);
 
 
 
 /* Enumeration for command types. */
+/*
 enum {
 	CMD_ECHO = 0,
 	CMD_EXPORT,
@@ -96,6 +108,8 @@ enum {
 	CMD_SORT,//implement sorting on rtenv
 	CMD_COUNT
 } CMD_TYPE;
+*/
+
 /* Structure for command handler. */
 typedef struct {
 	char cmd[MAX_CMDNAME + 1];
@@ -110,16 +124,18 @@ const hcmd_entry cmd_data[CMD_COUNT] = {
 	[CMD_MAN] = {.cmd = "man", .func = show_man_page, .description = "Manual pager."},
 	[CMD_PS] = {.cmd = "ps", .func = show_task_info, .description = "List all the processes."},
 	// show system time
-	[CMD_TIME]    = {.cmd = "time", .func = show_time, .description = "Show system time."},
+	//[CMD_TIME]    = {.cmd = "time", .func = show_time, .description = "Show system time."},
 	// sort numbers
-	[CMD_SORT]    = {.cmd = "sort",  .func = sort_num, .description = "Sort the input numbers."}
+	//h[CMD_SORT]    = {.cmd = "sort",  .func = sort_num, .description = "Sort the input numbers."}
 };
 
 /* Structure for environment variables. */
+/*
 typedef struct {
 	char name[MAX_ENVNAME + 1];
 	char value[MAX_ENVVALUE + 1];
 } evar_entry;
+*/
 evar_entry env_var[MAX_ENVCOUNT];
 int env_count = 0;
 
@@ -685,6 +701,7 @@ void export_envvar(int argc, char *argv[])
 		}
 	}
 }
+/*
 // swap function for sorting
 void swap(int* a, int* b)
 {
@@ -713,7 +730,7 @@ void sort_num(int argc, char* argv[])
 //time 
 void show_time(int argc, char* argv[])
 {
-	/*
+	
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
 	printf("%d/%d/%d, %d:%d:%d\n",
@@ -723,10 +740,9 @@ void show_time(int argc, char* argv[])
             tm.tm_hour,
             tm.tm_min,
             tm.tm_sec);
-            */
+            
 }
-
-
+*/
 
 //ps
 void show_task_info(int argc, char* argv[])
